@@ -40,13 +40,46 @@ As for the exact layers that the reasoning is applicable to:
 
 ### 2. Encoding multiple bits/numbers into native field elements
 
-We operate in a field, which size is about $2^{264}$, where as the biggest numbers we actually use are around $2^{13}$. So for lookups, for instance, we can , meaning to optimise the encoding efficientcy, we can encode such nu
+We operate in a field, which size is about $2^{256}$, while the biggest numbers we actually use are around $2^{13}$. So for lookups, and additionally other operations, especially sequential ones, we can encode multiple values into a single field element and then run operations on the encoded values. So, instead of representing a single bit as a field element, we can compress for example all filter inputs into a single field element, and then run a hash function on it, without the need of bit decomposition and recomposition. This should save some constraints and time, though in the overall scheme of things it might not be that significant. We could apply this optimisation to lookups, and here it becomes more interesting. Thought we will cover this case separately in the next section.
 
-## Lookup Optimisations
+## Lookups Optimisations
+
+### Folding
+
+Lookups take the majority of the constraints, of around 70%. So it is important to optimise them.
+
+The best and simplest way to optimise them would have been to use a folding scheme. Hinted over 6 month ago, currently folding schemes, such as [Sangria](https://geometry.xyz/notebook/sangria-a-folding-scheme-for-plonk) support folding of custom PLONK gates, which we can use to implement lookups.
+
+Additionally, work such as [Origami](https://hackmd.io/@aardvark/rkHqa3NZ2) provide a direct description of how to implement lookups in HALO2. 
+
+Despite being not audited yet, the approach is very interesting and should provide a drastic reduction in constraints. As WNN consists of a lot of repeated lookups and operations, where each discreminator does all the same operations, only on different inputs, the reduction in constraints should be significant.
+
+However, to our knowledge, there is no implementation of Origami yet, as well as Sangria is still unavailable for direct use in Halo2 library. Hopefully, this will change soon.
+
+### Compression
+
+#### Lasso
+
+
+There has been a recent breakthrough in lookups in light of [Lasso](https://eprint.iacr.org/2023/1216). It allows to only pay for the lookups actually looked up, and the rest of the lookup table comes for free. Considering that in WNN we on average only lookup 2-6 values out of 2^13, this should provide a significant reduction in constraints.
+By significant, we mean that the speedup could be in the order of 1000x, depending on the intrinsic costs of the scheme.
+
+However, as it happens again, the scheme has just been announced and is not yet available for use with Halo2 library. 
+
+#### Lookup Compression
+
+With this state of things, we decided to try to implement our own compression algorithm. What we noticed was that we store a single bit in a field element, which can accommodate up to 256 bits. So we decided to merge multiple bits together into a single field element.
+
+In the result we arrived to the scheme that we call Lookup Compression. It is a simple scheme, that allows to merge multiple bits into a single field element, and then decode any of the bits back with a proof of correctness that only requires a single lookup.
+Currently, the scheme is working with 14 bits, however, we think it should be possible to extend the scheme to 30 bits quite easily. 
+
+By using the scheme we reduce the size of the lookup table by 14 times, possibly 30 times, and thus reduce the number of constraints and speed by about the same factor.
+
+
 
 ### Origami - Lookup focused Sangria
 
-https://hackmd.io/@aardvark/rkHqa3NZ2
+
 
 
 ### Lasso
@@ -70,6 +103,7 @@ To prove an $index_i$ corresponds to $flag_i$, we just run a lookup.
 
 #### Solution 2 
 
+
 We notice that so far we store a single binary flag in a field element, which can accomodate up to M bits of information.
 
 So we decide to encode multiple indexes flags into a single field element. Iitally, we use straight forward concatenation for that. 
@@ -87,7 +121,7 @@ There are several strategies we can do:
     Requires 2^n lookup rows. 2 Columns
 2. Index Combination Lookup: 
     We create a lookup table of all possible combinations between n bit values and a bit index, which allows us to directly extract the i-th bit. 
-    Requires 2^n*n lookup rows. 3 Columns.
+    Requires 2^(n*n) lookup rows. 3 Columns.
 3. Chunk Decomposition: 
     We change the problem to selecting a correct chunk of k bits from n bits.
     This is a generalisation of approach one and can be used recursively.
@@ -95,6 +129,16 @@ There are several strategies we can do:
     - $chunk_i + acc_i-1 = acc_i$
     - $select_chunk_j = select_chunk_j-1 + chunk_j * (j == select_i)$
     Requires 2^(n-k) rows. About 7 columns.
+
+The original compression scheme we have proposed in the previous milestone was combination of 2 and 3. One can actually create an optimisation equation to evaluate the optimal chunk sizes, how many of them to do and when should they finally do a index lookup.
+
+In the previous milestone, we have used a Chunk Decomposition, where k=3, and n=5, followed by an Index Combination Lookup, where n=3. This required 2^9 + 2^2 rows.
+
+However, this solution does not scale well. There is a limit on how much we can compress, before the compression starts paying emitting returns.
+At some time, the cost of index combination lookups paired with chunk decompositions will be higher than the cost of just doing a lookup.
+
+The exact numbers are hard to tell and one should first attempt to solve the optimisation equation to find the optimal chunk sizes and number of chunks. However, given we have a scheme that can purely compress n bits into a single field element with no growing overhead, we decided to avoid the optimisation problem and focus on optimising the new scheme we have propsoed.
+
     
 #### Solution 3
 
