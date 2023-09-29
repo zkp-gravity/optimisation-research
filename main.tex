@@ -31,7 +31,6 @@ The architecture of the Weightless Neural Networks (WNN) employed in the Rust Pr
 Several steps were considered in this optimization process, including altering the hash functions, removing redundant proofs, and applying lookup compression.
 Below, we discuss each of considered steps in detail.
 
-\newpage
 \subsection{Exploring Alternate Hash Functions}\label{subsec:exploring-alternate-hash-functions}
 
 Initially, the MishMash hashing algorithm was designed with a hash function derived from raising the input to the power of three within a small finite field, and subsequently truncating the result to the desired length.
@@ -224,7 +223,6 @@ Eventually, the cumulative cost of index combination lookups and chunk decomposi
 Although the exact figures were elusive and necessitated solving the optimization equation to ascertain optimal chunk sizes and their count, the emergence of a scheme capable of compressing \( n \) bits into a single field element without escalating overhead prompted us to set aside the optimization dilemma.
 Instead, our focus shifted towards refining the newly proposed compression scheme, which offered a more promising avenue for enhancing lookup efficiency and scalability.
 
-\newpage
 \section{Optimising Preprocessing in WNN}\label{sec:optimising-preprocessing-in-wnn}
 
 Data preprocessing and feature extraction are familiar steps in traditional machine learning, with a track record of boosting model performance in many experiments.
@@ -454,12 +452,12 @@ The procedure that aided in achieving a better model on the MNIST dataset, compa
 
 For this method, the following parameters for the model were defined: bits per input = 2, unit inputs = 9, unit entries = 512, unit hashes = 2.
 The number of features used is 125\footnote{Note that if data preprocessing and feature selection weren't applied, the total number of features for 2 bits per input would be $(28-3+1)^2 = 676$}.
-Thus, a model of roughly the same size as the MNIST small model from the article \cite{susskind2022weightless} (MNIST small model has double the filter size, but our model has double the filters) was obtained, but with 1\% better accuracy.
+Thus, a model of roughly the same size as the MNIST small model from the article~\cite{susskind2022weightless} (MNIST small model has double the filter size, but our model has double the filters) was obtained, but with 1\% better accuracy.
 The accuracy for the given model is equal to 0.944.
 
 
 \section{Scaling WNN}\label{sec:scaling-wnn}
-Training WNNs for more complex datasets having many features inevitably leads to a significant increase in the model size and, consequently, inference time \cite{aleksander2009brief}.
+Training WNNs for more complex datasets having many features inevitably leads to a significant increase in the model size and, consequently, inference time~\cite{aleksander2009brief}.
 To address this issue, we can employ certain techniques mentioned earlier.
 
 Firstly, we can apply pooling, which significantly reduces the size of the data.
@@ -494,9 +492,71 @@ Firstly, we may attempt to formulate the task of training the WNN model as a dis
 Secondly, many discrete optimization tasks can be reduced to a Quadratic Unconstrained Binary Optimization (QUBO) problem, which involves minimizing a second-degree polynomial where all variables are either 0 or 1.
 This problem is equivalent to finding the ground state in the Ising model, where the corresponding spin variables are either -1 or 1.
 Essentially, we need to find a spin configuration that minimizes the Hamiltonian of the Ising model~\cite{glover2018logical}.
-This problem can further be reduced to solving a system of differential equations \cite{goto2019combinatorial, goto2021high}.
+This problem can further be reduced to solving a system of differential equations~\cite{goto2019combinatorial, goto2021high}.
 
 Hence, we may explore the possibility of constructing a transition from a discrete (binary) problem to a continuous problem and then investigate how classical training algorithms can be adapted for use in this context.
+
+\section{Conclusion}\label{sec:conclusion}
+
+In this report, we have discussed significant improvements in both the Rust Prover and Weightless Neural Networks (WNNs), aiming to enhance their efficiency and applicability.
+These advancements contribute to the broader fields of cryptography and neural network research, offering promising avenues for future developments.
+
+\subsection{Rust Prover Improvements}\label{subsec:prover-conclusion}
+
+The Rust Prover has seen substantial improvements in optimizing lookups, a critical component accounting for a significant portion of constraints in cryptographic protocols.
+Two primary approaches have been explored:
+
+\subsubsection{Folding}\label{subsubsec:prover-folding-conclusion}
+
+The utilization of folding schemes like Sangria and Origami holds significant potential to reduce constraints associated with lookups in cryptographic proofs.
+While these schemes are promising, they require further development and integration into the Halo2 library to realize their full benefits.
+The community's continued efforts in this direction are crucial for advancing efficient cryptographic protocols.
+
+\subsubsection{Compression}\label{subsubsec:prover-compression-conclusion}
+
+Lasso and custom compression schemes have been introduced as innovative methods for optimizing lookups.
+Lasso, in particular, shows promise by drastically reducing constraints for sparsely accessed lookup tables.
+However, its compatibility with Halo2 needs to be addressed.
+The custom compression scheme, which compresses binary lookup tables into a single field element, offers exciting possibilities for improving lookup efficiency.
+
+\subsection{WNN Improvements}\label{subsec:wnn-conclusion}
+
+Improvements in data preprocessing and feature selection for Weightless Neural Networks (WNNs) have been explored to enhance their performance.
+Key findings include:
+
+\subsubsection{Data Augmentation}\label{subsubsec:data-augmentation-conclusion}
+
+Data augmentation can be a valuable tool for combating overfitting and enhancing the generalization of WNNs.
+However, caution must be exercised when applying it to smaller models, as it may lead to degradation in performance.
+Larger models are better suited to handle the increased variety of patterns introduced by data augmentation.
+
+\subsubsection{Model Reduction using Feature Selection}\label{subsubsec:model-reduction-conclusion}
+
+The proposed feature selection algorithm has demonstrated effectiveness in reducing model size while maintaining reasonable accuracy.
+Even for smaller models, significant reductions in size (up to 50\%) can be achieved with only a modest drop in accuracy.
+
+\subsubsection{Model Construction using Feature Selection}\label{subsubsec:model-construction-conclusion}
+
+The greedy algorithm for feature selection, while computationally demanding, offers a means to construct models with important features.
+Its impact varies depending on the dataset complexity.
+For simpler datasets like MNIST, other model parameters may render this method less effective, but for larger and more complex datasets, it holds promise for achieving better results.
+
+\subsection{Further Work}\label{subsec:further-work}
+
+To continue advancing the Rust Prover and WNNs, several avenues for further work are suggested:
+
+\subsubsection{Improved Lookup Compression}\label{subsubsec:improved-lookup-compression}
+
+Efforts should focus on improving lookup compression algorithms, such as Lasso, and ensuring their compatibility with existing cryptographic libraries like Halo2.
+Exploring novel compression techniques that reduce constraints in lookup operations remains a critical research area.
+
+\subsubsection{Feature Selection on Larger Datasets}\label{subsubsec:feature-selection-larger-datasets}
+
+Extending the application of feature selection algorithms to larger and more complex datasets is imperative.
+Evaluating the performance and scalability of feature selection on datasets beyond MNIST will provide valuable insights into its practical utility.
+
+In conclusion, the advancements made in both the Rust Prover and WNNs have the potential to impact their respective fields significantly.
+By addressing the suggested further work items, we can continue to enhance the efficiency and effectiveness of these technologies, opening up new possibilities for cryptography and neural network applications.
 
 
 \newpage
